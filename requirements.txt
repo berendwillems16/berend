@@ -8,3 +8,4 @@ streamlit-folium
 openpyxl
 geopandas==1.0.1
 pyogrio==0.10.0
+gdown
