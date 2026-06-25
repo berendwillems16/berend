@@ -15,6 +15,21 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
+import gdown
+import zipfile
+
+GDRIVE_ID = "1eeobEZW0gTqdXULMpNS5a7EHKtNAfE8y"
+
+def download_shapefile_if_needed():
+    if not os.path.exists("shapefile/tolwegen.shp"):
+        url = f"https://drive.google.com/uc?id={GDRIVE_ID}"
+        gdown.download(url, "shapefile.zip", quiet=False)
+        with zipfile.ZipFile("shapefile.zip", "r") as z:
+            z.extractall(".")
+        os.remove("shapefile.zip")
+
+download_shapefile_if_needed()
+
 st.set_page_config(page_title="VWH Tool — Kamps Transport", layout="wide", page_icon="🚛")
 
 # ─── Constanten ───────────────────────────────────────────────────────────────
