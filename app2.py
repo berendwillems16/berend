@@ -9,19 +9,20 @@ import os
 import json
 import tempfile
 import io
+import zipfile
 import folium
 from streamlit_folium import st_folium
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
 import gdown
-import zipfile
 
+# ─── Shapefile downloaden van Google Drive ────────────────────────────────────
 GDRIVE_ID = "1eeobEZW0gTqdXULMpNS5a7EHKtNAfE8y"
 
 def download_shapefile_if_needed():
     if not os.path.exists("shapefile/tolwegen.shp"):
+        st.info("Shapefiles downloaden van Google Drive...")
         url = f"https://drive.google.com/uc?id={GDRIVE_ID}"
         gdown.download(url, "shapefile.zip", quiet=False)
         with zipfile.ZipFile("shapefile.zip", "r") as z:
