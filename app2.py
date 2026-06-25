@@ -15,22 +15,27 @@ from streamlit_folium import st_folium
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
+# ─── Shapefile downloaden van Google Drive ────────────────────────────────────
+GOFILE_ID = "eEEpNJ"
 
 def download_shapefile_if_needed():
     if not os.path.exists("shapefile/tolwegen.shp"):
         st.info("Shapefiles downloaden...")
-        session = requests.Session()
-        url = f"https://drive.google.com/uc?export=download&id={GDRIVE_ID}&confirm=t"
-        r = session.get(url, stream=True)
+        api = requests.get(f"https://api.gofile.io/contents/{GOFILE_ID}?wt=4fd6sg89d7s6&cache=true").json()
+        children = api["data"]["children"]
+        file_id = list(children.keys())[0]
+        direct_url = children[file_id]["link"]
+        token = api["data"].get("token", "")
+        r = requests.get(direct_url, stream=True, headers={"Cookie": f"accountToken={token}"})
         with open("shapefile.zip", "wb") as f:
             for chunk in r.iter_content(chunk_size=32768):
                 if chunk:
                     f.write(chunk)
         with zipfile.ZipFile("shapefile.zip", "r") as z:
-            st.write("Bestanden in zip:", z.namelist())
             z.extractall(".")
         os.remove("shapefile.zip")
+download_shapefile_if_needed()
+
 st.set_page_config(page_title="VWH Tool — Kamps Transport", layout="wide", page_icon="🚛")
 
 # ─── Constanten ───────────────────────────────────────────────────────────────
