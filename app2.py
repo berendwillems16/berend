@@ -17,19 +17,19 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 
-# ─── Shapefile downloaden van Google Drive ────────────────────────────────────
-GDRIVE_ID = "1eeobEZW0gTqdXULMpNS5a7EHKtNAfE8y"
-
 def download_shapefile_if_needed():
     if not os.path.exists("shapefile/tolwegen.shp"):
-        st.info("Shapefiles downloaden van Google Drive...")
-        url = f"https://drive.google.com/uc?id={GDRIVE_ID}"
-        gdown.download(url, "shapefile.zip", quiet=False)
+        st.info("Shapefiles downloaden...")
+        session = requests.Session()
+        url = f"https://drive.google.com/uc?export=download&id={GDRIVE_ID}&confirm=t"
+        r = session.get(url, stream=True)
+        with open("shapefile.zip", "wb") as f:
+            for chunk in r.iter_content(chunk_size=32768):
+                if chunk:
+                    f.write(chunk)
         with zipfile.ZipFile("shapefile.zip", "r") as z:
             z.extractall(".")
         os.remove("shapefile.zip")
-
-download_shapefile_if_needed()
 
 st.set_page_config(page_title="VWH Tool — Kamps Transport", layout="wide", page_icon="🚛")
 
