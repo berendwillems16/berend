@@ -15,26 +15,21 @@ from streamlit_folium import st_folium
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-# ─── Shapefile downloaden van Google Drive ────────────────────────────────────
-GOFILE_ID = "eEEpNJ"
 
-GOFILE_ID = "eEEpNJ"
-
+# ─── Shapefile downloaden van Gofile ─────────────────────────────────────────
 def download_shapefile_if_needed():
     if not os.path.exists("shapefile/tolwegen.shp"):
         st.info("Shapefiles downloaden...")
-        # Eerst een guest token ophalen
-        token_resp = requests.get("https://api.gofile.io/accounts/guest").json()
-        token = token_resp["data"]["token"]
-        # Dan de content ophalen
+        guest = requests.post("https://api.gofile.io/accounts").json()
+        token = guest["data"]["token"]
         api = requests.get(
-            f"https://api.gofile.io/contents/{GOFILE_ID}",
+            "https://api.gofile.io/contents/eEEpNJ",
             headers={"Authorization": f"Bearer {token}"}
         ).json()
-        st.write("API response:", api)  # tijdelijk voor debug
-        children = api["data"]["children"]
-        file_id = list(children.keys())[0]
-        direct_url = children[file_id]["link"]
+        data = api.get("data", {})
+        items = data.get("children", data.get("contents", {}))
+        file_info = list(items.values())[0]
+        direct_url = file_info.get("link") or file_info.get("directLink")
         r = requests.get(direct_url, stream=True, headers={"Authorization": f"Bearer {token}"})
         with open("shapefile.zip", "wb") as f:
             for chunk in r.iter_content(chunk_size=32768):
@@ -43,6 +38,8 @@ def download_shapefile_if_needed():
         with zipfile.ZipFile("shapefile.zip", "r") as z:
             z.extractall(".")
         os.remove("shapefile.zip")
+
+download_shapefile_if_needed()
 
 st.set_page_config(page_title="VWH Tool — Kamps Transport", layout="wide", page_icon="🚛")
 
@@ -412,7 +409,6 @@ def bereken(df, api_key, tarief, route_sleep, geocode_cache, route_cache,
 
     voortgang_bar.progress(1.0, text="COFRET berekenen...")
 
-    # COFRET
     rit_werkelijke_kosten={}; rit_werkelijke_alle_km={}
     for row in results:
         if row.get("_is_totaal"):
@@ -518,14 +514,12 @@ tab_upload, tab_resultaat, tab_kaart, tab_manueel = st.tabs([
     "📂 Upload & Berekenen", "📊 Resultaten", "🗺️ Kaart", "📍 Handmatige route"
 ])
 
-# ── Tab 1: Upload & Berekenen ─────────────────────────────────────────────────
 with tab_upload:
     uploaded = st.file_uploader("Upload je Excel-invoerbestand", type=["xlsx"])
     if uploaded:
         df_preview = pd.read_excel(uploaded)
         st.dataframe(df_preview.head(10), use_container_width=True)
         st.caption(f"{len(df_preview)} rijen geladen")
-
         if st.button("▶️ Start berekening", type="primary"):
             with st.spinner("Resources laden..."):
                 tolwegen, tol_sindex, nl_geom, de_geom, be_geom, postcode_df, de_df, be_df = load_resources()
@@ -545,7 +539,6 @@ with tab_upload:
             st.session_state["rit_kaarten"]    = rit_kaarten
             status_tekst.success("✅ Klaar! Ga naar Resultaten of Kaart.")
 
-# ── Tab 2: Resultaten ─────────────────────────────────────────────────────────
 with tab_resultaat:
     if "output_results" in st.session_state:
         output_results = st.session_state["output_results"]
@@ -575,7 +568,6 @@ with tab_resultaat:
     else:
         st.info("Voer eerst een berekening uit via het tabblad Upload & Berekenen.")
 
-# ── Tab 3: Kaart ──────────────────────────────────────────────────────────────
 with tab_kaart:
     if "rit_kaarten" in st.session_state:
         rit_kaarten = st.session_state["rit_kaarten"]
@@ -590,16 +582,13 @@ with tab_kaart:
     else:
         st.info("Voer eerst een berekening uit via het tabblad Upload & Berekenen.")
 
-# ── Tab 4: Handmatige route ───────────────────────────────────────────────────
 with tab_manueel:
     st.markdown("Voer stops in met plaats, postcode, landcode, opdrachtnummer en gewicht.")
-
     if "man_stops" not in st.session_state:
         st.session_state["man_stops"] = [
             {"plaats": "Bleiswijk", "postcode": "2665MZ", "land": "NL", "opdrachtnr": "", "gewicht": 0},
             {"plaats": "", "postcode": "", "land": "NL", "opdrachtnr": "", "gewicht": 0},
         ]
-
     stops = st.session_state["man_stops"]
     for i, stop in enumerate(stops):
         c1,c2,c3,c4,c5,c6 = st.columns([3,2,1,2,2,1])
@@ -612,7 +601,6 @@ with tab_manueel:
             st.write(""); st.write("")
             if i > 0 and st.button("🗑️", key=f"del_{i}"):
                 st.session_state["man_stops"].pop(i); st.rerun()
-
     col_add, col_calc = st.columns([1,3])
     with col_add:
         if st.button("➕ Stop toevoegen"):
@@ -620,7 +608,6 @@ with tab_manueel:
             st.rerun()
     with col_calc:
         bereken_btn = st.button("🗺️ Bereken route + COFRET", type="primary")
-
     if bereken_btn:
         geldig = [s for s in stops if s["plaats"].strip()]
         if len(geldig) < 2:
@@ -641,7 +628,6 @@ with tab_manueel:
             for s in geldig:
                 c = geocode(s["plaats"],s["postcode"],api_key,geocode_cache,postcode_df,de_df,be_df,s["land"] or None)
                 coords_lijst.append((s,c))
-
             for i in range(n):
                 stop_van, start = coords_lijst[i]
                 stop_naar, end  = coords_lijst[i+1]
@@ -672,8 +658,6 @@ with tab_manueel:
             prog.empty()
             save_cache(route_cache, ROUTE_CACHE_FILE)
             save_cache(geocode_cache, GEOCODE_CACHE_FILE)
-
-            # COFRET
             opdr_vwh={}
             for opdr,d in directe_routes.items():
                 bezet=d["gewicht"]/MAX_GEWICHT if d["gewicht"]>0 else 0
@@ -686,17 +670,13 @@ with tab_manueel:
                 row["Kosten toegerekend €"]=round((vwh/vwh_som)*kosten_totaal,2) if vwh and vwh_som else 0
                 dk=directe_routes.get(opdr,{}).get("direct_km",0)
                 row["Km toegerekend"]=round((dk/direct_km_som)*km_totaal,2) if dk and direct_km_som else 0
-
-            # Metrics
             c1,c2,c3,c4=st.columns(4)
             c1.metric("Totaal km",f"{km_totaal:.2f} km")
             c2.metric("Tol km",f"{tol_totaal:.2f} km")
             c3.metric("% tol",f"{(tol_totaal/km_totaal*100 if km_totaal else 0):.1f}%")
             c4.metric("Kosten tol",f"€ {kosten_totaal:.2f}")
-
             st.subheader("Resultaat per stop")
             st.dataframe(pd.DataFrame(resultaat_rijen), use_container_width=True)
-
             if alle_segmenten:
                 st.subheader("Kaart")
                 m = maak_kaart("Handmatige route", alle_segmenten)
