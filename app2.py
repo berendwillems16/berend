@@ -28,9 +28,9 @@ def download_shapefile_if_needed():
                 if chunk:
                     f.write(chunk)
         with zipfile.ZipFile("shapefile.zip", "r") as z:
+            st.write("Bestanden in zip:", z.namelist())
             z.extractall(".")
         os.remove("shapefile.zip")
-
 st.set_page_config(page_title="VWH Tool — Kamps Transport", layout="wide", page_icon="🚛")
 
 # ─── Constanten ───────────────────────────────────────────────────────────────
