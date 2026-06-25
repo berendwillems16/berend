@@ -18,15 +18,24 @@ from openpyxl.utils import get_column_letter
 # ─── Shapefile downloaden van Google Drive ────────────────────────────────────
 GOFILE_ID = "eEEpNJ"
 
+GOFILE_ID = "eEEpNJ"
+
 def download_shapefile_if_needed():
     if not os.path.exists("shapefile/tolwegen.shp"):
         st.info("Shapefiles downloaden...")
-        api = requests.get(f"https://api.gofile.io/contents/{GOFILE_ID}?wt=4fd6sg89d7s6&cache=true").json()
+        # Eerst een guest token ophalen
+        token_resp = requests.get("https://api.gofile.io/accounts/guest").json()
+        token = token_resp["data"]["token"]
+        # Dan de content ophalen
+        api = requests.get(
+            f"https://api.gofile.io/contents/{GOFILE_ID}",
+            headers={"Authorization": f"Bearer {token}"}
+        ).json()
+        st.write("API response:", api)  # tijdelijk voor debug
         children = api["data"]["children"]
         file_id = list(children.keys())[0]
         direct_url = children[file_id]["link"]
-        token = api["data"].get("token", "")
-        r = requests.get(direct_url, stream=True, headers={"Cookie": f"accountToken={token}"})
+        r = requests.get(direct_url, stream=True, headers={"Authorization": f"Bearer {token}"})
         with open("shapefile.zip", "wb") as f:
             for chunk in r.iter_content(chunk_size=32768):
                 if chunk:
@@ -34,7 +43,6 @@ def download_shapefile_if_needed():
         with zipfile.ZipFile("shapefile.zip", "r") as z:
             z.extractall(".")
         os.remove("shapefile.zip")
-download_shapefile_if_needed()
 
 st.set_page_config(page_title="VWH Tool — Kamps Transport", layout="wide", page_icon="🚛")
 
