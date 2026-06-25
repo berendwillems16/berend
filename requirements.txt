@@ -7,3 +7,4 @@ folium
 streamlit-folium
 openpyxl
 geopandas==0.14.4
+fiona==1.9.6
