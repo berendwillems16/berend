@@ -15,7 +15,7 @@ from streamlit_folium import st_folium
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-import gdown
+
 
 # ─── Shapefile downloaden van Google Drive ────────────────────────────────────
 GDRIVE_ID = "1eeobEZW0gTqdXULMpNS5a7EHKtNAfE8y"
