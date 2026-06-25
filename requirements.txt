@@ -6,5 +6,5 @@ openrouteservice
 folium
 streamlit-folium
 openpyxl
-geopandas==0.14.4
-fiona==1.9.6
+geopandas==1.0.1
+pyogrio==0.10.0
