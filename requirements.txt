@@ -7,10 +7,10 @@
 
 \f0\fs24 \cf0 streamlit\
 pandas\
-geopandas\
 requests\
 shapely\
 openrouteservice\
 folium\
 streamlit-folium\
-openpyxl}
+openpyxl\
+geopandas==0.14.4}
